@@ -10,7 +10,10 @@ func Setup(app *fiber.App) {
 	// Route lấy thông tin khách hàng
 	app.Get("/customers", controllers.GetCustomers)
 	// Định nghĩa các route
-	app.Put("/contracts/transfer-ownership", controllers.ChuyenSoHuuHandler)
+	// Route cho chuyển nhượng sở hữu hợp đồng
+
+	// Đảm bảo rằng route có cấu trúc như sau
+	app.Put("/transfer/:contractID", controllers.TransferOwnership)
 
 	// Route thêm khách hàng mới
 	app.Post("/customers", controllers.CreateCustomers)

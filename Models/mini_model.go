@@ -60,6 +60,19 @@ type Accounts struct {
 	LanDangNhapGanNhat *time.Time `json:"lanDangNhapGanNhat" gorm:"autoUpdateTime;column:LanDangNhapGanNhat"` // Lần đăng nhập gần nhất
 }
 
+// bảng LoginAttempts
+type LoginAttempt struct {
+	ID          string    `gorm:"primaryKey;type:uuid;default:uuid_generate_v4();column:id_uuid"`
+	SoDienThoai string    `gorm:"column:SoDienThoai;not null"`
+	SoLanSai    int       `gorm:"column:SoLanSai;default:0"`
+	Ngay        time.Time `gorm:"column:Ngay;default:current_timestamp"`
+	KhoiPhuc    bool      `gorm:"column:KhoiPhuc;default:false"`
+}
+
+func (LoginAttempt) TableName() string {
+	return "login_attempts"
+}
+
 type OTPCode struct {
 	ID          string    `gorm:"primaryKey;type:uuid;default:uuid_generate_v4();column:id_uuid"` // UUID tự động
 	SoDienThoai string    `json:"soDienThoai" gorm:"not null;index;column:SoDienThoai"`           // Số điện thoại (có index)
@@ -73,4 +86,15 @@ type Devices struct {
 	ID             string    `gorm:"primaryKey;type:uuid;default:uuid_generate_v4();column:id_uuid"` // UUID tự động
 	SoDienThoai    string    `json:"soDienThoai" gorm:"not null;index;column:SoDienThoai"`           // Số điện thoại (có index)
 	LanDungGanNhat time.Time `json:"lanDungGanNhat" gorm:"autoUpdateTime;column:LanDungGanNhat"`     // Lần sử dụng thiết bị gần nhất
+}
+
+type Log struct {
+	ID        string    `gorm:"primaryKey;type:uuid;default:uuid_generate_v4();column:id_uuid"`
+	Action    string    `gorm:"not null;column:Action"`          // Hành động
+	Details   string    `gorm:"not null;column:Details"`         // Chi tiết
+	CreatedAt time.Time `gorm:"autoCreateTime;column:CreatedAt"` // Thời gian thực hiện
+}
+
+func (Log) TableName() string {
+	return "logs"
 }

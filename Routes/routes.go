@@ -2,13 +2,15 @@ package routes
 
 import (
 	"MiniHIFPT/controllers"
-
 	"github.com/gofiber/fiber/v2"
 )
 
 func Setup(app *fiber.App) {
+
 	// Route lấy thông tin khách hàng
 	app.Get("/customers", controllers.GetCustomers)
+	// Định nghĩa các route
+	app.Put("/contracts/transfer-ownership", controllers.ChuyenSoHuuHandler)
 
 	// Route thêm khách hàng mới
 	app.Post("/customers", controllers.CreateCustomers)
@@ -27,11 +29,9 @@ func Setup(app *fiber.App) {
 	app.Get("/ctmtract", controllers.Getctm_tracts)
 	app.Post("/Createctmtract", controllers.Createctm_tracts)
 	// Route đăng ký tài khoản
-	app.Post("/register", controllers.Register) // Đảm bảo là POST để tạo tài khoản mới
-
+	app.Post("/register", controllers.Register)
 	// Route đăng nhập
-	app.Post("/login", controllers.Login) // Đảm bảo là POST để đăng nhập
-
+	app.Post("/login", controllers.Login)
 	// Route xác thực OTP
-	app.Post("/otp", controllers.VerifyOTP) // Đảm bảo là POST để xác thực OTP
+	app.Post("/otp", controllers.VerifyOTP)
 }

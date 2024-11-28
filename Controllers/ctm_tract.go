@@ -14,7 +14,7 @@ func Getctm_tracts(c *fiber.Ctx) error {
 	result := database.DB.Find(&ctm_tracts)
 	if result.Error != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error": "Không thể lấy thông tin hợp đồng",
+			"error": "Không thể lấy thông tin ",
 		})
 	}
 
@@ -22,7 +22,7 @@ func Getctm_tracts(c *fiber.Ctx) error {
 	return c.JSON(ctm_tracts)
 }
 
-// (thêm)
+// (thêm liên kết )
 func Createctm_tracts(c *fiber.Ctx) error {
 	var ctm_tract models.Customer_Contractt
 
@@ -46,11 +46,14 @@ func Createctm_tracts(c *fiber.Ctx) error {
 	result := database.DB.Create(&ctm_tract)
 	if result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":   "Không thể tạo hợp đồng",
+			"error":   "Không thể tạo liên kết  hợp đồng",
 			"details": result.Error.Error(), // Trả về chi tiết lỗi từ kết quả tạo
 		})
 	}
 
 	// Trả về hợp đồng đã được thêm vào
-	return c.Status(fiber.StatusCreated).JSON(ctm_tract)
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "Tạo liên kết số điện thoại và hợp đồng thành công",
+	})
+
 }

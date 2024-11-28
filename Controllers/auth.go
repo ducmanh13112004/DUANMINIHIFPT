@@ -80,12 +80,52 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
+	// Kiểm tra số lần nhập sai trong ngày
+	var loginAttempts models.LoginAttempt
+	dailyAttempts := database.DB.Where("SoDienThoai = ? AND DATE(Ngay) = CURDATE()", loginCredentials.SoDienThoai).First(&loginAttempts)
+
+	// Nếu đã nhập sai 5 lần trong ngày
+	if dailyAttempts.Error == nil && loginAttempts.SoLanSai >= 5 {
+		// Kiểm tra thời gian lần nhập sai cuối cùng
+		if time.Since(loginAttempts.Ngay) < time.Minute {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "Bạn đã nhập sai mật khẩu quá 5 lần. Vui lòng thử lại sau 1 phút.",
+			})
+		}
+		//time.Minute: đại diện cho 1 phút.
+		// Nếu thời gian đã quá 1 phút, reset số lần sai
+		loginAttempts.SoLanSai = 0
+		loginAttempts.Ngay = time.Now() // Cập nhật thời gian
+		database.DB.Save(&loginAttempts)
+	}
+
 	// Kiểm tra mật khẩu có đúng không
-	//bcrypt.CompareHashAndPassword:  (một hàm trong thư viện bcrypt )được sử dụng để so sánh mật khẩu người dùng nhập vào với mật khẩu đã mã hóa trong cơ sở dữ liệu
 	if err := bcrypt.CompareHashAndPassword([]byte(account.MatKhau), []byte(loginCredentials.MatKhau)); err != nil {
+		// Nếu mật khẩu sai, tăng số lần sai đăng nhập
+		if loginAttempts.ID == "" {
+			// Nếu chưa có bản ghi, tạo mới
+			loginAttempts = models.LoginAttempt{
+				SoDienThoai: loginCredentials.SoDienThoai,
+				SoLanSai:    1,
+			}
+			database.DB.Create(&loginAttempts)
+		} else {
+			// Nếu có bản ghi, tăng số lần sai
+			loginAttempts.SoLanSai++
+			loginAttempts.Ngay = time.Now() // Cập nhật thời gian nhập sai
+			database.DB.Save(&loginAttempts)
+		}
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Số điện thoại hoặc mật khẩu không đúng",
 		})
+	}
+
+	// Nếu đăng nhập thành công, reset số lần sai
+	if loginAttempts.ID != "" {
+		loginAttempts.SoLanSai = 0
+		loginAttempts.KhoiPhuc = true
+		loginAttempts.Ngay = time.Now() // Cập nhật thời gian thành công
+		database.DB.Save(&loginAttempts)
 	}
 
 	// Kiểm tra nếu là thiết bị mới (cần OTP)

@@ -60,9 +60,9 @@ func UpdateContract(c *fiber.Ctx) error {
 	// Lấy ID hợp đồng từ URL (được truyền dưới dạng tham số)
 	id := c.Params("id")
 
-	// Tìm hợp đồng theo ID
+	// Tìm hợp đồng theo ID (kiểu UUID)
 	var contract models.Contract
-	if err := database.DB.First(&contract, "id = ?", id).Error; err != nil {
+	if err := database.DB.First(&contract, "id_uuid = ?", id).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Hợp đồng không tồn tại",
 		})
@@ -77,39 +77,45 @@ func UpdateContract(c *fiber.Ctx) error {
 		})
 	}
 
-	// Cập nhật thông tin hợp đồng
+	// Cập nhật các trường hợp đồng trực tiếp
+	updates := map[string]interface{}{}
+
 	if updatedData.TenKhachHang != "" {
-		contract.TenKhachHang = updatedData.TenKhachHang
+		updates["TenKhachHang"] = updatedData.TenKhachHang
 	}
 	if updatedData.DiaChi != "" {
-		contract.DiaChi = updatedData.DiaChi
+		updates["DiaChi"] = updatedData.DiaChi
 	}
 	if updatedData.MaTinh != "" {
-		contract.MaTinh = updatedData.MaTinh
+		updates["MaTinh"] = updatedData.MaTinh
 	}
 	if updatedData.MaQuanHuyen != "" {
-		contract.MaQuanHuyen = updatedData.MaQuanHuyen
+		updates["MaQuanHuyen"] = updatedData.MaQuanHuyen
 	}
 	if updatedData.MaPhuongXa != "" {
-		contract.MaPhuongXa = updatedData.MaPhuongXa
+		updates["MaPhuongXa"] = updatedData.MaPhuongXa
 	}
 	if updatedData.MaDuong != "" {
-		contract.MaDuong = updatedData.MaDuong
+		updates["MaDuong"] = updatedData.MaDuong
 	}
 	if updatedData.SoNha != "" {
-		contract.SoNha = updatedData.SoNha
+		updates["SoNha"] = updatedData.SoNha
 	}
 
-	// Lưu các thay đổi vào cơ sở dữ liệu
-	if err := database.DB.Save(&contract).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":   "Không thể cập nhật hợp đồng",
-			"details": err.Error(),
-		})
-	} //
+	// Cập nhật hợp đồng nếu có trường hợp cần cập nhật
+	if len(updates) > 0 {
+		if err := database.DB.Model(&contract).Updates(updates).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error":   "Không thể cập nhật hợp đồng",
+				"details": err.Error(),
+			})
+		}
+	}
 
-	// Trả về hợp đồng đã được cập nhật
-	return c.JSON(contract)
+	// Trả về hợp đồng đã được cập nhật (contract)
+	return c.JSON(fiber.Map{
+		"message": "Sửa khách hàng thành công",
+	})
 }
 
 // Xóa

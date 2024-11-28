@@ -6,11 +6,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// Lấy thông tin các hợp đồng
+// Lấy thông tin các kh
 func GetCustomers(c *fiber.Ctx) error {
 	var customers []models.Customer //khởi tạo danh sách
 
-	// Lấy danh sách hợp đồng
+	// Lấy danh sách kh
 	result := database.DB.Find(&customers)
 	if result.Error != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -18,11 +18,11 @@ func GetCustomers(c *fiber.Ctx) error {
 		})
 	}
 
-	// Trả về danh sách hợp đồng
+	// Trả về danh sách kh
 	return c.JSON(customers)
 }
 
-// Tạo hợp đồng mới (thêm)
+// Tạo khách hàng mới (thêm)
 func CreateCustomers(c *fiber.Ctx) error {
 	var customer models.Customer
 
@@ -35,14 +35,14 @@ func CreateCustomers(c *fiber.Ctx) error {
 	}
 	//StatusBadRequest lỗi cú pháp và dữ liệu không hợp lệ hoặc thiếu thông tin.
 
-	// Kiểm tra dữ liệu hợp đồng, ví dụ kiểm tra trường hợp hợp đồng đã có
+	// Kiểm tra dữ liệu khách hàng
 	if customer.SoDienThoai == "" || customer.TenKhachHang == "" || customer.GioiTinh == "" || customer.NgaySinh == nil || customer.Email == "" || customer.LoaiKhachHang == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Thiếu thông tin cần thiết",
 		})
 	}
 
-	// Thêm hợp đồng vào cơ sở dữ liệu
+	// Thêm khách hàng vào cơ sở dữ liệu
 	result := database.DB.Create(&customer)
 	if result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -51,6 +51,9 @@ func CreateCustomers(c *fiber.Ctx) error {
 		})
 	}
 
-	// Trả về hợp đồng đã được thêm vào
-	return c.Status(fiber.StatusCreated).JSON(customer)
+	// Trả về khách hàng đã được thêm vào (customer)
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "Thêm khách hàng thành công",
+	})
+
 }

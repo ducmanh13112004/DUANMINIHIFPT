@@ -167,6 +167,7 @@ func VerifyOTP(c *fiber.Ctx) error {
 		SoDienThoai string `json:"SoDienThoai"`
 		OTPCode     string `json:"OTPCode"`
 	}
+
 	if err := c.BodyParser(&otpRequest); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Dữ liệu đầu vào không hợp lệ",

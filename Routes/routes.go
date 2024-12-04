@@ -2,39 +2,39 @@ package routes
 
 import (
 	"MiniHIFPT/controllers"
+	"MiniHIFPT/middleware"
 	"github.com/gofiber/fiber/v2"
 )
 
 func Setup(app *fiber.App) {
 
-	// Route lấy thông tin khách hàng
-	app.Get("/customers", controllers.GetCustomers)
-	// Định nghĩa các route
-	// Route cho chuyển nhượng sở hữu hợp đồng
+	// Route lấy thông tin khách hàng (cần xác thực)
+	app.Get("/customers", middleware.Authenticate, controllers.GetCustomers)
+	// Route thêm khách hàng mới (cần xác thực)
+	app.Post("/customers", middleware.Authenticate, controllers.CreateCustomers)
+	// Route chuyển hợp đồng (cần xác thực)
+	app.Post("/transfer", middleware.Authenticate, controllers.TransferOwnership)
+	// Route lấy thông tin hợp đồng (cần xác thực)
+	app.Get("/contracts", middleware.Authenticate, controllers.GetContracts)
+	// Route lấy thông tin hợp đồng theo ID (cần xác thực)
+	app.Get("/contracts/:id_uuid", middleware.Authenticate, controllers.GetContractByID)
 
-	// Đảm bảo rằng route có cấu trúc như sau
-	app.Put("/transfer/:contractID", controllers.TransferOwnership)
+	// Route tạo hợp đồng mới (cần xác thực)
+	app.Post("/contracts", middleware.Authenticate, controllers.CreateContract)
+	// Route sửa hợp đồng (cần xác thực)
+	app.Put("/contracts/:id", middleware.Authenticate, controllers.UpdateContract)
+	// Route xóa hợp đồng (cần xác thực)
+	app.Delete("/contracts/:id", middleware.Authenticate, controllers.DeleteContract)
+	// Liên kết hợp đồng (cần xác thực)
+	app.Get("/ctmtract", middleware.Authenticate, controllers.Getctm_tracts)
+	app.Post("/Createctmtract", middleware.Authenticate, controllers.Createctm_tracts)
 
-	// Route thêm khách hàng mới
-	app.Post("/customers", controllers.CreateCustomers)
-
-	// Route lấy thông tin hợp đồng
-
-	app.Get("/contracts", controllers.GetContracts)
-	// Định nghĩa route để tạo hợp đồng mới
-	app.Post("/contracts", controllers.CreateContract)
-	// Sửa hợp đồng
-	app.Put("/contracts/:id", controllers.UpdateContract)
-	// Xóa hợp đồng
-	app.Delete("/contracts/:id", controllers.DeleteContract)
-
-	//ctm_tract
-	app.Get("/ctmtract", controllers.Getctm_tracts)
-	app.Post("/Createctmtract", controllers.Createctm_tracts)
-	// Route đăng ký tài khoản
+	// Route đăng ký tài khoản (không cần xác thực)
 	app.Post("/register", controllers.Register)
-	// Route đăng nhập
+	// Route đăng nhập (không cần xác thực)
 	app.Post("/login", controllers.Login)
-	// Route xác thực OTP
+	// Route xác thực OTP (không cần xác thực)
 	app.Post("/otp", controllers.VerifyOTP)
+	// Route cấp quyền cho tài khoản đối với hợp đồng (cần xác thực)
+	app.Post("/grant-access", middleware.Authenticate, controllers.AddContractAccess)
 }

@@ -9,20 +9,14 @@ import (
 
 // Lấy thông tin các kh
 func GetCustomers(c *fiber.Ctx) error {
-	var customers []models.Customer //khởi tạo danh sách
-
-	// Lấy danh sách kh
-	result := database.DB.Find(&customers)
-	if result.Error != nil {
-		return c.Status(500).JSON(fiber.Map{
+	customers, err := database.GetCustomers()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Không thể lấy thông tin khách hàng",
 		})
 	}
-
-	// Trả về danh sách kh
 	return c.JSON(customers)
 }
-
 func CreateCustomers(c *fiber.Ctx) error {
 	// Tạo một struct tạm thời để nhận dữ liệu JSON
 	type TempCustomer struct {
@@ -39,8 +33,8 @@ func CreateCustomers(c *fiber.Ctx) error {
 	// Phân tích dữ liệu JSON từ yêu cầu POST
 	if err := c.BodyParser(&tempCustomer); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "Dữ liệu đầu vào không hợp lệ",
-			"details": err.Error(),
+			"error": "Dữ liệu đầu vào không hợp lệ",
+			// "details": err.Error(),
 		})
 	}
 	//...
@@ -50,8 +44,8 @@ func CreateCustomers(c *fiber.Ctx) error {
 		date, err := time.Parse("2006-01-02", tempCustomer.NgaySinh)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error":   "Định dạng ngày sinh không hợp lệ, yêu cầu dạng YYYY-MM-DD",
-				"details": err.Error(),
+				"error": "Định dạng ngày sinh không hợp lệ, yêu cầu dạng YYYY-MM-DD",
+				// "details": err.Error(),
 			})
 		}
 		parsedDate = &date
@@ -74,18 +68,14 @@ func CreateCustomers(c *fiber.Ctx) error {
 		})
 	}
 
-	// Thêm khách hàng vào cơ sở dữ liệu
-	result := database.DB.Create(&customer)
-	if result.Error != nil {
+	if err := database.CreateCustomer(&customer); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":   "Không thể tạo khách hàng",
-			"details": result.Error.Error(),
+			"error": "Không thể tạo khách hàng",
 		})
 	}
-
 	// Trả về khách hàng đã được thêm vào
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"message": "Thêm khách hàng thành công",
-		"data":    customer,
+		// "data":    customer,
 	})
 }

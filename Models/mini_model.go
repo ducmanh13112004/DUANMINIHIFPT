@@ -6,15 +6,14 @@ import (
 
 // ----------------------- Khách hàng -----------------------
 type Customer struct {
-	ID           string     `gorm:"primaryKey;type:uuid;default:uuid_generate_v4();column:id_uuid"` // UUID tự động
-	SoDienThoai  string     `json:"soDienThoai" gorm:"column:SoDienThoai"`                          // Số điện thoại khách hàng
-	TenKhachHang string     `json:"tenKhachHang" gorm:"column:TenKhachHang"`                        // Tên khách hàng
-	GioiTinh     string     `json:"gioiTinh" gorm:"column:GioiTinh"`                                // Giới tính khách hàng
-	NgaySinh     *time.Time `gorm:"type:date;column:NgaySinh" json:"ngaySinh"`
-
+	ID            string     `gorm:"primaryKey;type:uuid;default:uuid_generate_v4();column:id_uuid"` // UUID tự động
+	SoDienThoai   string     `json:"soDienThoai" gorm:"column:SoDienThoai"`                          // Số điện thoại khách hàng
+	TenKhachHang  string     `json:"tenKhachHang" gorm:"column:TenKhachHang"`                        // Tên khách hàng
+	GioiTinh      string     `json:"gioiTinh" gorm:"column:GioiTinh"`                                // Giới tính khách hàng
+	NgaySinh      *time.Time `gorm:"type:date;column:NgaySinh" json:"ngaySinh"`
 	Email         string     `json:"email" gorm:"column:Email"`                                          // Email khách hàng
 	LoaiKhachHang string     `gorm:"type:char(1);default:'T';column:LoaiKhachHang" json:"loaiKhachHang"` // Loại khách hàng: Tiềm năng (T) hoặc Sử dụng dịch vụ (S)
-	Contracts     []Contract `gorm:"many2many:customer_contracts;" json:"contracts"`                     // Quan hệ nhiều-nhiều với Contract
+	// Contracts     []Contract `gorm:"many2many:customer_contracts;" json:"contracts"`                     // Quan hệ nhiều-nhiều với Contract
 }
 
 // Chỉ định tên bảng
@@ -49,6 +48,18 @@ type Customer_Contractt struct {
 // Chỉ định tên bảng trong MySQL
 func (Customer_Contractt) TableName() string {
 	return "customer_contractt" // Tên bảng trong cơ sở dữ liệu
+}
+
+// ----------------------- Bảng trung gian quyền truy cập tài khoản -----------------------
+type Account_Contract struct {
+	ID         string `gorm:"primaryKey;type:uuid;default:uuid_generate_v4();column:id_uuid"` // UUID tự động
+	AccountID  string `gorm:"index;not null;column:AccountID"`                                // ID tài khoản
+	ContractID string `gorm:"index;not null;column:ContractID"`                               // ID hợp đồng
+}
+
+// Chỉ định tên bảng trong MySQL
+func (Account_Contract) TableName() string {
+	return "accounts_contracts" // Tên bảng trong cơ sở dữ liệu
 }
 
 // ----------------------- Tài khoản người dùng -----------------------

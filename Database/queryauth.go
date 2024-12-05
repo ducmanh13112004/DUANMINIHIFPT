@@ -93,3 +93,19 @@ func SaveOTP(otp *models.OTPCode) error {
 func SaveDevice(device *models.Devices) error {
 	return DB.Create(device).Error
 }
+
+// Lấy thiết bị theo số điện thoại và loại thiết bị
+func GetDeviceByPhoneAndType(soDienThoai string, deviceType string) (*models.Devices, error) {
+	var device models.Devices
+	err := DB.Where("SoDienThoai = ? AND DeviceType = ?", soDienThoai, deviceType).First(&device).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil // Không tìm thấy thiết bị
+	}
+
+	if err != nil {
+		return nil, err // Trả về lỗi nếu có lỗi khác
+	}
+
+	return &device, nil // Trả về thiết bị nếu tìm thấy
+}

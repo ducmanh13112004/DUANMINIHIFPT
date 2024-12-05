@@ -3,6 +3,7 @@ package controllers
 import (
 	"MiniHIFPT/database"
 	"MiniHIFPT/models"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"golang.org/x/crypto/bcrypt"
@@ -65,12 +66,14 @@ func Login(c *fiber.Ctx) error {
 			"error": "Dữ liệu đầu vào không hợp lệ",
 		})
 	}
+
 	// Kiểm tra nếu số điện thoại hoặc mật khẩu trống
 	if loginCredentials.SoDienThoai == "" || loginCredentials.MatKhau == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Số điện thoại và mật khẩu không được để trống",
 		})
 	}
+
 	// Lấy thông tin tài khoản từ cơ sở dữ liệu
 	account, err := database.GetAccountByPhone(loginCredentials.SoDienThoai)
 	if err != nil {
@@ -102,7 +105,7 @@ func Login(c *fiber.Ctx) error {
 		// Chặn đăng nhập nếu vượt quá số lần sai
 		if loginAttempts.SoLanSai >= 4 {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error": "Bạn đã nhập sai mật khẩu quá quá số lần quy định. Vui lòng thử lại sau 1 phút.",
+				"error": "Bạn đã nhập sai mật khẩu quá số lần quy định. Vui lòng thử lại sau 1 phút.",
 			})
 		}
 	}
@@ -142,10 +145,17 @@ func Login(c *fiber.Ctx) error {
 		}
 	}
 
-	// Kiểm tra thiết bị
-	device, err := database.GetDeviceByPhone(account.SoDienThoai)
+	// Lấy thông tin thiết bị hiện tại
+	currentDeviceType := c.Get("User-Agent") // Lấy loại thiết bị từ User-Agent
+	device, err := database.GetDeviceByPhoneAndType(account.SoDienThoai, currentDeviceType)
 	if err != nil {
-		// Tạo mới thiết bị và gửi OTP nếu chưa có
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Có lỗi khi kiểm tra thiết bị",
+		})
+	}
+
+	// Nếu không tìm thấy thiết bị, gửi OTP và lưu thiết bị mới
+	if device == nil {
 		otpCode := generateOTP()
 		otp := &models.OTPCode{
 			SoDienThoai: account.SoDienThoai,
@@ -154,15 +164,21 @@ func Login(c *fiber.Ctx) error {
 		}
 		if err := database.CreateOTP(otp); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Có lỗi xảy ra khi tạo OTP",
+				"error": "Có lỗi khi tạo OTP",
 			})
 		}
 
-		device = &models.Devices{
-			ID:          utils.UUIDv4(),
-			SoDienThoai: account.SoDienThoai,
+		// Lưu thiết bị mới
+		newDevice := &models.Devices{
+			ID:              utils.UUIDv4(),
+			SoDienThoai:     account.SoDienThoai,
+			DeviceType:      currentDeviceType,
+			OperatingSystem: "Unknown OS", // Có thể sử dụng thư viện để lấy Hệ điều hành
+			LastIPAddress:   c.IP(),
+			DeviceName:      "Thiết bị mới",
+			LanDungGanNhat:  time.Now(),
 		}
-		if err := database.SaveDevice(device); err != nil {
+		if err := database.SaveDevice(newDevice); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Có lỗi xảy ra khi lưu thiết bị",
 			})
@@ -174,7 +190,7 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	// Tạo JWT token
+	// Tạo JWT token nếu thiết bị đã tồn tại
 	token, err := generateJWT(account)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -184,7 +200,7 @@ func Login(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Đăng nhập thành công, không cần nhập OTP.",
-		"token":   token, // Trả về token
+		"token":   token,
 	})
 }
 
@@ -217,15 +233,33 @@ func VerifyOTP(c *fiber.Ctx) error {
 		})
 	}
 
-	// Lưu thông tin thiết bị vào cơ sở dữ liệu
-	device := &models.Devices{
-		ID:          utils.UUIDv4(),
-		SoDienThoai: otpRequest.SoDienThoai,
-	}
-	if err := database.SaveDevice(device); err != nil {
+	// Lấy thông tin loại thiết bị từ User-Agent
+	currentDeviceType := c.Get("User-Agent") // Lấy loại thiết bị từ User-Agent
+
+	// Kiểm tra xem thiết bị đã tồn tại hay chưa
+	existingDevice, err := database.GetDeviceByPhoneAndType(otpRequest.SoDienThoai, currentDeviceType)
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Có lỗi xảy ra khi lưu thiết bị",
+			"error": "Có lỗi khi kiểm tra thiết bị",
 		})
+	}
+
+	// Nếu thiết bị chưa tồn tại, tạo và lưu thiết bị mới
+	if existingDevice == nil {
+		device := &models.Devices{
+			ID:              utils.UUIDv4(),
+			SoDienThoai:     otpRequest.SoDienThoai,
+			DeviceType:      currentDeviceType,
+			OperatingSystem: "Unknown OS", // Có thể sử dụng thư viện để lấy Hệ điều hành
+			LastIPAddress:   c.IP(),
+			DeviceName:      "Thiết bị mới",
+			LanDungGanNhat:  time.Now(),
+		}
+		if err := database.SaveDevice(device); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Có lỗi xảy ra khi lưu thiết bị",
+			})
+		}
 	}
 
 	// Lấy thông tin tài khoản từ cơ sở dữ liệu

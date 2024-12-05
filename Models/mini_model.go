@@ -94,10 +94,22 @@ type OTPCode struct {
 	DaXacThuc   bool      `json:"daXacThuc" gorm:"default:false;column:DaXacThuc"`                // Trạng thái xác thực OTP (mặc định false)
 }
 
+//	type Devices struct {
+//		ID             string    `gorm:"primaryKey;type:uuid;default:uuid_generate_v4();column:id_uuid"` // UUID tự động
+//		SoDienThoai    string    `json:"soDienThoai" gorm:"not null;index;column:SoDienThoai"`           // Số điện thoại (có index)
+//		LanDungGanNhat time.Time `json:"lanDungGanNhat" gorm:"autoUpdateTime;column:LanDungGanNhat"`     // Lần sử dụng thiết bị gần nhất
+//	}
 type Devices struct {
-	ID             string    `gorm:"primaryKey;type:uuid;default:uuid_generate_v4();column:id_uuid"` // UUID tự động
-	SoDienThoai    string    `json:"soDienThoai" gorm:"not null;index;column:SoDienThoai"`           // Số điện thoại (có index)
-	LanDungGanNhat time.Time `json:"lanDungGanNhat" gorm:"autoUpdateTime;column:LanDungGanNhat"`     // Lần sử dụng thiết bị gần nhất
+	ID              string    `gorm:"primaryKey;type:uuid;default:uuid_generate_v4();column:id_uuid"` // UUID tự động
+	SoDienThoai     string    `json:"soDienThoai" gorm:"not null;index;column:SoDienThoai"`           // Số điện thoại
+	DeviceName      string    `json:"deviceName" gorm:"column:DeviceName;size:100"`                   // Tên thiết bị
+	DeviceType      string    `json:"deviceType" gorm:"column:DeviceType;size:50"`                    // Loại thiết bị
+	OperatingSystem string    `json:"operatingSystem" gorm:"column:OperatingSystem;size:50"`          // Hệ điều hành
+	LastIPAddress   string    `json:"lastIPAddress" gorm:"column:LastIPAddress;size:50"`              // Địa chỉ IP cuối
+	Status          string    `json:"status" gorm:"column:Status;size:20;default:'Active'"`           // Trạng thái thiết bị
+	LanDungGanNhat  time.Time `json:"lanDungGanNhat" gorm:"autoUpdateTime;column:LanDungGanNhat"`     // Lần sử dụng gần nhất
+	CreatedAt       time.Time `gorm:"autoCreateTime;column:CreatedAt"`                                // Thời gian tạo
+	UpdatedAt       time.Time `gorm:"autoUpdateTime;column:UpdatedAt"`                                // Thời gian cập nhật
 }
 
 type Log struct {

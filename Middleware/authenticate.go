@@ -6,37 +6,47 @@ import (
 	"strings"
 )
 
-var jwtSecretKey = []byte("your_secret_key")
+var jwtSecretKey = []byte("your_secret_key") // Khóa bí mật JWT
 
-// wtSecretKey là khóa bí mật được sử dụng để ký và xác thực JWT.
-
+// Authenticate là middleware để xác thực JWT và lưu accountID vào context
 func Authenticate(c *fiber.Ctx) error {
-	// Lấy token từ header Authorization
 	tokenString := c.Get("Authorization")
 	tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
 
-	// Kiểm tra nếu không có token
 	if tokenString == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Token không hợp lệ",
 		})
 	}
 
-	// Parse token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Kiểm tra phương thức ký
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fiber.ErrUnauthorized
 		}
-		return jwtSecretKey, nil // Sử dụng jwtSecretKey để xác thực
+		return jwtSecretKey, nil
 	})
-	//SigningMethodHMAC là một phương thức ký trong JWT (JSON Web Token) được sử dụng trong quá trình ký và xác thực token
+
 	if err != nil || !token.Valid {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Token không hợp lệ: ",
-			//+ err.Error()
+			"error": "Token không hợp lệ",
 		})
 	}
 
+	// Lưu thông tin tài khoản vào context
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Xác nhận quyền sở hữu token không hợp lệ",
+		})
+	}
+	//
+	accountID, ok := claims["accountID"].(string)
+	if !ok || accountID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "ID tài khoản không hợp lệ hoặc thiếu trong mã thông báo",
+		})
+	}
+
+	c.Locals("accountID", accountID)
 	return c.Next()
 }

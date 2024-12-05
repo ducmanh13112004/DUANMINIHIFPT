@@ -247,7 +247,7 @@ func VerifyOTP(c *fiber.Ctx) error {
 	// Trả về phản hồi thành công cùng với JWT token
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Xác thực OTP thành công. Thiết bị đã được lưu.",
-		"token":   token, // Trả về token JWT
+		"token":   token,
 	})
 }
 

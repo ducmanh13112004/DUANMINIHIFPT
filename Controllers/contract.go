@@ -3,9 +3,11 @@ package controllers
 import (
 	"MiniHIFPT/database"
 	"MiniHIFPT/models"
-	"errors"
+	// "errors"
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
+	// "gorm.io/gorm"
+
+	"github.com/google/uuid"
 )
 
 // Lấy thông tin các hợp đồng
@@ -18,32 +20,6 @@ func GetContracts(c *fiber.Ctx) error {
 	}
 	return c.JSON(contracts)
 }
-
-// Lấy thông tin chi tiết một hợp đồng
-// func GetContractByID(c *fiber.Ctx) error {
-// 	// Lấy ID từ URL
-// 	idUUID := c.Params("id_uuid")
-// 	// Gọi hàm truy vấn từ package database
-// 	contract, err := database.GetContractByID(idUUID)
-// 	if err != nil {
-// 		// Kiểm tra lỗi không tìm thấy
-// 		if errors.Is(err, gorm.ErrRecordNotFound) {
-// 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-// 				"error": "Không tìm thấy hợp đồng với ID được cung cấp",
-// 			})
-// 		}
-// 		// Xử lý lỗi khác
-// 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-// 			"error": "Đã xảy ra lỗi khi truy vấn hợp đồng",
-// 		})
-// 	}
-
-// 	// Trả về thông tin hợp đồng dưới dạng JSON
-// 	// return c.JSON(fiber.Map{
-// 	// 	"message": "Hợp đồng bạn yêu cầu là: ",
-// 	// })
-// 	return c.JSON(contract)
-// }
 
 // Thêm quyền truy cập cho tài khoản đối với hợp đồng
 func AddContractAccess(c *fiber.Ctx) error {
@@ -75,55 +51,44 @@ func AddContractAccess(c *fiber.Ctx) error {
 	})
 }
 
-// Lấy thông tin chi tiết một hợp đồng với kiểm tra quyền truy cập
+// Lấy hợp đồng theo ID (chỉ cho phép xem hợp đồng của tài khoản)
 func GetContractByID(c *fiber.Ctx) error {
-	// Lấy ID từ URL
-	idUUID := c.Params("id_uuid")
+	contractID := c.Params("id")
+	accountID := c.Locals("accountID").(string)
 
-	// Kiểm tra quyền truy cập (nếu cần)
-	accountID := c.Locals("accountID").(string) // Nếu sử dụng middleware để lấy thông tin tài khoản
+	// Kiểm tra quyền truy cập
 	var count int64
+	idUUID, err := uuid.Parse(contractID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+
+			"error": "ID hợp đồng không hợp lệ" + err.Error(),
+		})
+	}
+
 	if err := database.DB.Model(&models.Account_Contract{}).
 		Where("AccountID = ? AND ContractID = ?", accountID, idUUID).
 		Count(&count).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Đã xảy ra lỗi khi kiểm tra quyền truy cập",
+			"error": "Lỗi khi kiểm tra quyền truy cập",
 		})
 	}
+
 	if count == 0 {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"error": "Bạn không có quyền truy cập hợp đồng này",
 		})
 	}
 
-	// Gọi hàm truy vấn từ package database
-	contract := models.Contract{}
-	err := database.DB.Where("id_uuid = ?", idUUID).First(&contract).Error
-
-	// Kiểm tra lỗi khi truy vấn dữ liệu
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error": "Không tìm thấy hợp đồng với ID được cung cấp",
-			})
-		}
-		// Lỗi khác (có thể là lỗi kết nối DB hoặc lỗi khác)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Đã xảy ra lỗi khi truy vấn hợp đồng: " + err.Error(),
-		})
-	}
-
-	// Kiểm tra xem đối tượng hợp đồng có dữ liệu hợp lệ không (ID là string)
-	if contract.ID == "" { // Kiểm tra với chuỗi trống nếu ID là string
+	// Lấy thông tin hợp đồng
+	var contract models.Contract
+	if err := database.DB.First(&contract, "id_uuid = ?", idUUID).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Hợp đồng không tồn tại",
 		})
 	}
 
-	// Trả về dữ liệu hợp đồng
-	return c.JSON(fiber.Map{
-		"data": contract,
-	})
+	return c.JSON(contract)
 }
 
 // Tạo hợp đồng mới (thêm)
@@ -208,21 +173,60 @@ func UpdateContract(c *fiber.Ctx) error {
 }
 
 // Xóa hợp đồng
+// func DeleteContract(c *fiber.Ctx) error {
+// 	id := c.Params("id")
+// 	contract, err := database.GetContractByID(id)
+// 	if err != nil {
+// 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+// 			"error": "Hợp đồng không tồn tại",
+// 		})
+// 	}
+
+// 	if err := database.DeleteContract(&contract); err != nil {
+// 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+// 			"error": "Không thể xóa hợp đồng",
+// 		})
+// 	}
+
+//		return c.JSON(fiber.Map{
+//			"message": "Xóa hợp đồng thành công",
+//		})
+//	}
+//
+// Xóa hợp đồng
 func DeleteContract(c *fiber.Ctx) error {
-	id := c.Params("id")
-	contract, err := database.GetContractByID(id)
+	contractID := c.Params("id")
+	accountID := c.Locals("accountID").(string)
+
+	// Kiểm tra quyền truy cập
+	var count int64
+	idUUID, err := uuid.Parse(contractID)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Hợp đồng không tồn tại",
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "ID hợp đồng không hợp lệ",
 		})
 	}
 
-	if err := database.DeleteContract(&contract); err != nil {
+	if err := database.DB.Model(&models.Account_Contract{}).
+		Where("AccountID = ? AND ContractID = ?", accountID, idUUID).
+		Count(&count).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Lỗi khi kiểm tra quyền truy cập",
+		})
+	}
+
+	if count == 0 {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Bạn không có quyền xóa hợp đồng này",
+		})
+	}
+
+	// Xóa hợp đồng
+	if err := database.DB.Delete(&models.Contract{}, "id_uuid = ?", idUUID).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Không thể xóa hợp đồng",
 		})
 	}
-
 	return c.JSON(fiber.Map{
 		"message": "Xóa hợp đồng thành công",
 	})
